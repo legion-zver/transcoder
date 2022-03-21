@@ -149,24 +149,24 @@ func (t *Transcoder) Start(opts transcoder.Options) (<-chan transcoder.Progress,
 		return nil, fmt.Errorf("failed starting transcoding (%s) with args (%s) with error %s", t.config.FfmpegBinPath, args, err)
 	}
 	if !t.config.Progress || t.config.Verbose {
-		if err = cmd.Wait(); err != nil {
-			t.errors = append(t.errors, err.Error())
+		// Wait exit command
+		_ = cmd.Wait()
+		// Check exist code
+		if cmd.ProcessState != nil && cmd.ProcessState.ExitCode() == 0 {
+			t.errors = make([]string, 0)
 		}
 		return nil, err
 	}
-	out, end := make(chan transcoder.Progress), make(chan bool)
-	defer close(end)
+	//
+	out := make(chan transcoder.Progress)
 	go func() {
 		defer close(out)
+		// Read progress
 		t.progress(stderrIn, out)
-		end <- true // send end processing for sync exit
-	}()
-	go func() {
-		if err := cmd.Wait(); err != nil {
-			t.errors = append(t.errors, err.Error())
-		}
-		<-end // wait end and check process exit code
-		if cmd.ProcessState.ExitCode() == 0 {
+		// Wait exit command
+		_ = cmd.Wait()
+		// Check exist code
+		if cmd.ProcessState != nil && cmd.ProcessState.ExitCode() == 0 {
 			t.errors = make([]string, 0)
 		}
 	}()
