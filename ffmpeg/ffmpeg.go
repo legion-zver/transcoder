@@ -154,23 +154,20 @@ func (t *Transcoder) Start(opts transcoder.Options) (<-chan transcoder.Progress,
 		}
 		return nil, err
 	}
-	out := make(chan transcoder.Progress)
-	syncTerminate := make(chan bool)
+	out, end := make(chan transcoder.Progress), make(chan bool)
+	defer close(end)
 	go func() {
 		defer close(out)
 		t.progress(stderrIn, out)
-		syncTerminate <- true
+		end <- true // send end processing for sync exit
 	}()
 	go func() {
-		defer close(syncTerminate)
 		if err := cmd.Wait(); err != nil {
 			t.errors = append(t.errors, err.Error())
-		} else {
-			//if error in console but transcodes if ok
-			<-syncTerminate
-			if cmd.ProcessState.ExitCode() == 0 {
-				t.errors = make([]string, 0)
-			}
+		}
+		<-end // wait end and check process exit code
+		if cmd.ProcessState.ExitCode() == 0 {
+			t.errors = make([]string, 0)
 		}
 	}()
 	return out, err
