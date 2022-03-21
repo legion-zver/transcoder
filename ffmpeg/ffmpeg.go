@@ -153,14 +153,11 @@ func (t *Transcoder) Start(opts transcoder.Options) (<-chan transcoder.Progress,
 		_ = cmd.Wait()
 		// Check exist code
 		if cmd.ProcessState != nil && cmd.ProcessState.ExitCode() == 0 {
-			if len(t.errors) > 0 {
-				fmt.Println("reset errors, but ffmpeg exist with 0 status code")
-			}
 			t.errors = make([]string, 0)
 		}
 		return nil, err
 	}
-	//
+	// With progress
 	out := make(chan transcoder.Progress)
 	go func() {
 		defer close(out)
@@ -172,6 +169,9 @@ func (t *Transcoder) Start(opts transcoder.Options) (<-chan transcoder.Progress,
 		_ = cmd.Wait()
 		// Check exist code
 		if cmd.ProcessState != nil && cmd.ProcessState.ExitCode() == 0 {
+			if len(t.errors) > 0 {
+				fmt.Println("reset errors, but ffmpeg exist with 0 status code")
+			}
 			t.errors = make([]string, 0)
 		}
 	}()
